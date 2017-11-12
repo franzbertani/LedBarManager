@@ -15,6 +15,8 @@ namespace LedBarManager
         SetPlayerColor,
         StartProgressBar,
         ShowEffect,
+        GetStatus,
+        SwitchOff,
     };
 
 
@@ -151,6 +153,24 @@ namespace LedBarManager
         }
 
         /// <summary>
+        /// Switch off everything.
+        /// </summary>
+        public void SwitchOff()
+        {
+            var command = new SendCommand((int)Command.SwitchOff, (int)Command.Acknowledge, 1000);
+            _cmdMessenger.SendCommand(command);
+        }
+
+        /// <summary>
+        /// Gets the status of arduino
+        /// </summary>
+        private void GetStatus()
+        {
+            var command = new SendCommand((int)Command.GetStatus, (int)Command.Acknowledge, 1000);
+            _cmdMessenger.SendCommand(command);
+        }
+
+        /// <summary>
         /// Attachs the command call backs.
         /// </summary>
         private void AttachCommandCallBacks()
@@ -160,7 +180,6 @@ namespace LedBarManager
             _cmdMessenger.Attach((int)Command.Error, OnError);
 
         }
-
 
 
         // ------------------  C A L L B A C K S ---------------------

@@ -48,6 +48,8 @@ namespace LedBarManager
             _percentagePerPoint = (float)_ledsPerTeam / _pointsInGame;
             _team1Percentage = 0;
             _team2Percentage = 0;
+            _team1Points = 0;
+            _team2Points = 0;
             _sender.StartProgressBar();
 
         }
@@ -124,6 +126,13 @@ namespace LedBarManager
         public void ShowEffect(int barPortion, int effectNumber, int duration = 5000)
         {
             _sender.ShowEffect(barPortion, effectNumber, duration);
+        }
+
+        /// <summary>
+        /// Close this instance.
+        /// </summary>
+        public void SwitchOff(){
+            _sender.SwitchOff();
         }
     }
 }

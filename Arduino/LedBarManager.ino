@@ -75,6 +75,7 @@ enum commands
   kStartProgressBar,
   kShowEffect,
   kGetStatus,
+  kSwitchOff,
 
 };
 
@@ -88,7 +89,8 @@ void attachCommandCallbacks()
   cmdMessenger.attach(kStartProgressBar, OnStartup);
   cmdMessenger.attach(kShowEffect, OnkShowEffect);
   cmdMessenger.attach(kGetStatus, OnGetStatus);
-}
+  cmdMessenger.attach(kSwitchOff, OnSwitchOff);
+} 
 
 
 
@@ -242,6 +244,15 @@ void OnGetStatus()
   response += "effect: " + String(effectRunning) + "\n";
   response += "effectTimestamp: " + String(effectTimestamp) + "\n";
   cmdMessenger.sendCmd(kAcknowledge, response);
+}
+
+void OnSwitchOff()
+{
+  effectRunning = false;
+  showingProgressBar = false;
+  FastLED.clear();
+  FastLED.show();
+  cmdMessenger.sendCmd(kAcknowledge, "leds are off");
 }
 
 
