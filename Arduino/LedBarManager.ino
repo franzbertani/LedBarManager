@@ -27,16 +27,16 @@ bool showingProgressBar; // to know if currently in game
 
 
 // -------------  L E D - E F F E C T S ----------------
-
-CRGB* barPortion; // pointer to first led for the selected effect
-int effectLedsCount;
-uint16_t frame = 0;
+CRGB *barPortion[3];
+int effectLedsCount[3] = {(NUM_LEDS - BAR_DISTANCE)/2, (NUM_LEDS - BAR_DISTANCE)/2, NUM_LEDS};
+uint16_t frame[3] = {0, 0, 0};
 uint16_t animateSpeed = 100;
-uint8_t  animation;
+uint8_t  animation[3];
 uint8_t brightness = 50;
-bool effectRunning = false;
-long int effectTimestamp = 0;
-int effectDuration = 5000; // default value (milliseconds)
+bool effectRunning[3] = {false, false, false};
+long int effectTimestamp[3] = {0, 0, 0};
+int effectDuration[3] = {5000, 5000, 5000}; // default value (milliseconds)
+
 enum barPortion
 {
   // bar portions
@@ -90,7 +90,7 @@ void attachCommandCallbacks()
   cmdMessenger.attach(kShowEffect, OnkShowEffect);
   cmdMessenger.attach(kGetStatus, OnGetStatus);
   cmdMessenger.attach(kSwitchOff, OnSwitchOff);
-} 
+}
 
 
 
@@ -141,8 +141,6 @@ void OnkLightUpLed()
       break;
     default:
       cmdMessenger.sendCmd(kError, "wrong player number");
-      errorEffect();
-      restoreAfterEffect();
       return;
   }
   FastLED.show();
@@ -210,27 +208,15 @@ void OnStartup()
 void OnkShowEffect()
 {
   int portion = cmdMessenger.readInt16Arg();
-  switch (portion) {
-    case kFirstTeamBar:
-      barPortion = team1Front;
-      effectLedsCount = (NUM_LEDS - BAR_DISTANCE)/2;
-      break;
-    case kSecondTeamBar:
-      barPortion = team2Front;
-      effectLedsCount = (NUM_LEDS - BAR_DISTANCE)/2;
-      break;
-    case kEntireBar:
-      barPortion = leds;
-      effectLedsCount = NUM_LEDS;
-      break;
-    default:
-      cmdMessenger.sendCmd(kError, "wrong portion");
-      return;
+  if(portion < 0 || portion > 2)
+  {
+    cmdMessenger.sendCmd(kError, "wrong portion");
+    return;
   }
-  animation = cmdMessenger.readInt16Arg();
-  effectRunning = true;
-  effectTimestamp = millis();
-  effectDuration = cmdMessenger.readInt32Arg();
+  animation[portion] = cmdMessenger.readInt16Arg();
+  effectRunning[portion] = true;
+  effectTimestamp[portion] = millis();
+  effectDuration[portion] = cmdMessenger.readInt32Arg();
   cmdMessenger.sendCmd(kAcknowledge, "effect on");
 }
 
@@ -241,14 +227,13 @@ void OnGetStatus()
   response += "progress bar: " + String(showingProgressBar) + "\n";
   response += "team1Leds: " + String(team1Leds) + "\n";
   response += "team2Leds: " + String(team2Leds) + "\n";
-  response += "effect: " + String(effectRunning) + "\n";
-  response += "effectTimestamp: " + String(effectTimestamp) + "\n";
   cmdMessenger.sendCmd(kAcknowledge, response);
 }
 
 void OnSwitchOff()
 {
-  effectRunning = false;
+  for(int i=0; i<3; i++)
+    effectRunning[i] = false;
   showingProgressBar = false;
   FastLED.clear();
   FastLED.show();
@@ -260,24 +245,37 @@ void OnSwitchOff()
 //##                    LED EFFECTS               ##
 //##################################################
 
-void restoreAfterEffect()
+void restoreAfterEffect(int i)
 {
-  effectRunning = false;
-  effectTimestamp = 0;
-  frame = 0;
-  FastLED.clear();
+  effectRunning[i] = false;
+  effectTimestamp[i] = 0;
+  frame[i] = 0;
+  clearPortion(barPortion[i], effectLedsCount[i]);
   if(showingProgressBar)
-    restoreProgressBar();
+    restoreProgressBar(i);
   FastLED.show();
   cmdMessenger.sendCmd(kAcknowledge, "effect stopped");
 }
 
-void restoreProgressBar()
+void restoreProgressBar(int i)
 {
-  fill_solid(team1Front, team1Leds, team1Color);
-  fill_solid(team1Tail-team1Leds+1, team1Leds, team1Color);
-  fill_solid(team2Front, team2Leds, team2Color);
-  fill_solid(team2Tail-team2Leds+1, team2Leds, team2Color);
+  switch (i)
+  {
+    case 0:
+      fill_solid(team1Front, team1Leds, team1Color);
+      fill_solid(team2Tail-team2Leds+1, team2Leds, team2Color);
+      break;
+    case 1:
+      fill_solid(team2Front, team2Leds, team2Color);
+      fill_solid(team1Tail-team1Leds+1, team1Leds, team1Color);
+      break;
+    case 2:
+      fill_solid(team1Front, team1Leds, team1Color);
+      fill_solid(team1Tail-team1Leds+1, team1Leds, team1Color);
+      fill_solid(team2Front, team2Leds, team2Color);
+      fill_solid(team2Tail-team2Leds+1, team2Leds, team2Color);
+      break;
+  }
 }
 
 void errorEffect()
@@ -302,32 +300,32 @@ void clearPortion(CRGB *first, int number)
 
 // ---------------  A G G R E G A T E -- A N I M A T I O N S -----------------
 
-void TripleBounce(CRGB ledsArray[], uint16_t frame)    //3 chaser animations offset by 120 degrees each
+void TripleBounce(CRGB ledsArray[], uint16_t frame, int i)    //3 chaser animations offset by 120 degrees each
 {
-  clearPortion(barPortion, effectLedsCount);    //Clear previous buffer
-  Bounce(ledsArray,frame,0);
-  Bounce(ledsArray,frame+(MAX_INT_VALUE/3),100);
-  Bounce(ledsArray,frame+(MAX_INT_VALUE/3)*2,150);
+  clearPortion(barPortion[i], effectLedsCount[i]);    //Clear previous buffer
+  Bounce(ledsArray,frame,0, i);
+  Bounce(ledsArray,frame+(MAX_INT_VALUE/3),100, i);
+  Bounce(ledsArray,frame+(MAX_INT_VALUE/3)*2,150, i);
 }
 
-void DoubleChaser(CRGB ledsArray[], uint16_t frame)   //2 chaser animations offset 180 degrees
+void DoubleChaser(CRGB ledsArray[], uint16_t frame, int i)   //2 chaser animations offset 180 degrees
 {
-  clearPortion(barPortion, effectLedsCount);    //Clear previous buffer
+  clearPortion(barPortion[i], effectLedsCount[i]);    //Clear previous buffer
   frame = frame * 2;
-  Ring(ledsArray, frame, 0);
-  Ring(ledsArray, frame + (MAX_INT_VALUE / 2), 150);
+  Ring(ledsArray, frame, 0, i);
+  Ring(ledsArray, frame + (MAX_INT_VALUE / 2), 150, i);
 }
 
-void RingPair(CRGB ledsArray[], uint16_t frame)     //2 rings animations at inverse phases
+void RingPair(CRGB ledsArray[], uint16_t frame, int i)     //2 rings animations at inverse phases
 {
-  clearPortion(barPortion, effectLedsCount);   //Clear previous buffer
-  Ring(ledsArray, frame, 30);
-  Ring(ledsArray, MAX_INT_VALUE - frame, 150);
+  clearPortion(barPortion[i], effectLedsCount[i]);   //Clear previous buffer
+  Ring(ledsArray, frame, 30, i);
+  Ring(ledsArray, MAX_INT_VALUE - frame, 150, i);
 }
 
 
-void RainbowSpark(CRGB targetleds[], uint16_t animationFrame,uint8_t fade){    //Color spark where hue is function of frame
-  Spark(targetleds,animationFrame,fade,animationFrame/255);
+void RainbowSpark(CRGB targetleds[], uint16_t animationFrame,uint8_t fade, int i){    //Color spark where hue is function of frame
+  Spark(targetleds,animationFrame,fade,animationFrame/255, i);
   delay(20);
 }
 
@@ -339,7 +337,7 @@ void RainbowSpark(CRGB targetleds[], uint16_t animationFrame,uint8_t fade){    /
 // Linear "Larson scanner" (or knight rider effect) with anti-aliasing
 // Color is determined by "hue"
 //*****************************************************************
-void Bounce(CRGB targetleds[], uint16_t animationFrame, uint8_t hue)
+void Bounce(CRGB targetleds[], uint16_t animationFrame, uint8_t hue, int i)
 {
   uint16_t pos16;
   if (animationFrame < (MAX_INT_VALUE / 2))
@@ -350,19 +348,19 @@ void Bounce(CRGB targetleds[], uint16_t animationFrame, uint8_t hue)
     pos16 = MAX_INT_VALUE - ((animationFrame - (MAX_INT_VALUE/2))*2);
   }
 
-  int position = map(pos16, 0, MAX_INT_VALUE, 0, ((effectLedsCount) * 16));
-  drawFractionalBar(targetleds, position, 3, hue,0);
+  int position = map(pos16, 0, MAX_INT_VALUE, 0, ((effectLedsCount[i]) * 16));
+  drawFractionalBar(targetleds, position, 3, hue,0, i);
 }
 
 //************************          Ring           ******************************
 // Anti-aliased cyclical chaser, 3 pixels wide
 // Color is determined by "hue"
 //*****************************************************
-void Ring(CRGB targetleds[], uint16_t animationFrame, uint8_t hue)
+void Ring(CRGB targetleds[], uint16_t animationFrame, uint8_t hue, int i)
 {
-  uint8_t ledsLength = effectLedsCount/sizeof(CRGB);
+  uint8_t ledsLength = effectLedsCount[i];
   int pos16 = map(animationFrame, 0, MAX_INT_VALUE, 0, ((ledsLength) * 16));
-  drawFractionalBar(targetleds, pos16, 3, hue,1);
+  drawFractionalBar(targetleds, pos16, 3, hue,1, i);
 }
 
 //***************************   Wave [Float Math]  *******************************
@@ -371,11 +369,11 @@ void Ring(CRGB targetleds[], uint16_t animationFrame, uint8_t hue)
 // Squeezing achieved by using an exponential (^8) sin value
 // Color is determined by "hue"
 //***********************************************************************************
-void Wave(CRGB targetleds[], uint16_t animationFrame, uint8_t hue){
-  clearPortion(barPortion, effectLedsCount);    //Clear previous buffer
+void Wave(CRGB targetleds[], uint16_t animationFrame, uint8_t hue, int num){
+  clearPortion(barPortion[num], effectLedsCount[num]);    //Clear previous buffer
   float deg;
   float value;
-  uint8_t ledsLength = sizeof(leds)/sizeof(CRGB);
+  uint8_t ledsLength = effectLedsCount[num];
   for(uint8_t i=0;i<ledsLength;i++)
   {
     deg=float(animationFrame+((MAX_INT_VALUE/ledsLength)*i))/(float(MAX_INT_VALUE)) * 360.0;
@@ -393,9 +391,9 @@ void Wave(CRGB targetleds[], uint16_t animationFrame, uint8_t hue){
 // Since im stuck with integer values, exponential wave-forming is not possible (unless i'm wrong???)
 // Color is determined by "hue"
 //***********************************************************************************
-void WaveInt(CRGB targetleds[], uint16_t animationFrame, uint8_t hue){
-  clearPortion(barPortion, effectLedsCount);
-  uint8_t ledsLength = sizeof(leds)/sizeof(CRGB);
+void WaveInt(CRGB targetleds[], uint16_t animationFrame, uint8_t hue, int num){
+  clearPortion(barPortion[num], effectLedsCount[num]);
+  uint8_t ledsLength = effectLedsCount[num];
   uint8_t value;
   for(uint8_t i=0;i<ledsLength;i++)
   {
@@ -414,9 +412,9 @@ void WaveInt(CRGB targetleds[], uint16_t animationFrame, uint8_t hue){
 // fade = 256 means no dropoff, pixels are on or off
 // NOTE: this animation doesnt clear the previous buffer because the fade/dropoff is a function of the previous LED state
 //***********************************************************************************
-void Spark(CRGB targetleds[], uint16_t animationFrame,uint8_t fade, uint8_t hue){
+void Spark(CRGB targetleds[], uint16_t animationFrame,uint8_t fade, uint8_t hue, int num){
 
-  uint8_t ledsLength = sizeof(leds)/sizeof(CRGB);
+  uint8_t ledsLength = effectLedsCount[num];
   uint16_t rand = random16();
 
     for(int i=0;i<ledsLength;i++)
@@ -439,8 +437,8 @@ void Spark(CRGB targetleds[], uint16_t animationFrame,uint8_t fade, uint8_t hue)
 // fade = 256 means no dropoff, pixels are on or off
 // NOTE: this animation doesnt clear the previous buffer because the fade/dropoff is a function of the previous LED state
 //***********************************************************************************
-void Spark(CRGB targetleds[], uint16_t animationFrame,uint8_t fade){
-  uint8_t ledsLength = sizeof(leds)/sizeof(CRGB);
+void Spark(CRGB targetleds[], uint16_t animationFrame,uint8_t fade, int num){
+  uint8_t ledsLength = effectLedsCount[num];
   uint16_t rand = random16();
 
   for(int i=0;i<ledsLength;i++)
@@ -457,9 +455,9 @@ void Spark(CRGB targetleds[], uint16_t animationFrame,uint8_t fade){
 }
 
 //Anti-aliasing code care of Mark Kriegsman Google+: https://plus.google.com/112916219338292742137/posts/2VYNQgD38Pw
-void drawFractionalBar(CRGB targetleds[], int pos16, int width, uint8_t hue, bool wrap)
+void drawFractionalBar(CRGB targetleds[], int pos16, int width, uint8_t hue, bool wrap, int num)
 {
-  uint8_t ledsLength = effectLedsCount/sizeof(CRGB);
+  uint8_t ledsLength = effectLedsCount[num];
   uint8_t i = pos16 / 16; // convert from pos to raw pixel number
 
   uint8_t frac = pos16 & 0x0F; // extract the 'factional' part of the position
@@ -520,7 +518,9 @@ void setup()
   team1Tail = leds + NUM_LEDS - 1;
   team2Front = leds + ((NUM_LEDS-BAR_DISTANCE)/2)+BAR_DISTANCE;
   team2Tail = leds + ((NUM_LEDS-BAR_DISTANCE)/2) - 1;
-
+  barPortion[0] = team1Front;
+  barPortion[1] = team2Front;
+  barPortion[2] = leds;
   cmdMessenger.sendCmd(kAcknowledge,"Arduino has started!"); // send ready ack
 
 }
@@ -531,69 +531,75 @@ void loop()
   cmdMessenger.feedinSerialData();   // Process incoming serial data, and perform callbacks
 
   // Effect loop management
-  if(effectRunning && abs(millis()) - abs(effectTimestamp) >= abs(effectDuration))
-    restoreAfterEffect();
-
-  if(effectRunning)
+  for(int i=0; i<3; i++)
   {
-    switch(animation)
-    {
-    case kRingPair:
-      RingPair(barPortion, frame);
-      FastLED.show();
-      frame += animateSpeed;
-      break;
-    case kDoubleChaser:
-      DoubleChaser(barPortion,frame);
-      FastLED.show();
-      frame += animateSpeed;
-      break;
-    case kTripleBounce:
-      TripleBounce(barPortion,frame);
-      FastLED.show();
-      frame += animateSpeed;
-      break;
-    case kWaveInt:
-      WaveInt(barPortion,frame,180);
-      FastLED.show();
-      frame += animateSpeed;
-      break;
-    case kWave:
-      Wave(barPortion,frame,180);
-      FastLED.show();
-      frame += animateSpeed;
-      break;
-    case kBlueSparkSlow:  //Blue spark (Slow)
-      Spark(barPortion,frame,255,188);   //Overloaded version of "Spark" with Hue value, 255 for fade is the slowest fade possible. 256 is on/off
-      delay(2);  //Slow things down a bit more for Slow Spark
-      FastLED.show();
-      frame += animateSpeed;
-      break;
-    case kBlueSparkFast:  //Blue spark (fast)
-      Spark(barPortion,frame,246,188);  //Overloaded version of "Spark" with Hue value, 246 fade is faster which makes for a sharper dropoff
-      FastLED.show();
-      frame += animateSpeed;
-      break;
-    case kWhiteSparkSlow:  //White spark (Slow)
-      Spark(barPortion,frame,255);  //"Spark" function without hue make a white spark, 255 for fade is the slowest fade possible.
-      delay(2);  //Slow things down a bit more for Slow Spark
-      FastLED.show();
-      frame += animateSpeed;
-      break;
-    case kWhiteSparkFast:  //White spark (fast) "Spark" function without hue make a white spark, 246 fade is faster which makes for a sharper dropoff
-      Spark(barPortion,frame,245);
-      FastLED.show();
-      frame += animateSpeed;
-      break;
-    case kRainbow:
-      RainbowSpark(barPortion,frame,240);  //240 for dropoff is a pretty sharp fade, good for this animation
-      FastLED.show();
-      frame += animateSpeed;
-      break;
-    default:
-      cmdMessenger.sendCmd(kError, "wrong effect number");
-      restoreAfterEffect();
-    }
-
+    if(effectRunning[i] && abs(millis()) - abs(effectTimestamp[i]) >= abs(effectDuration[i]))
+      restoreAfterEffect(i);
   }
+  for (int i=0; i<3; i++)
+  {
+    if(effectRunning[i])
+    {
+      switch(animation[i])
+      {
+      case kRingPair:
+        RingPair(barPortion[i], frame[i], i);
+        FastLED.show();
+        frame[i] += animateSpeed;
+        break;
+      case kDoubleChaser:
+        DoubleChaser(barPortion[i],frame[i], i);
+        FastLED.show();
+        frame[i] += animateSpeed;
+        break;
+      case kTripleBounce:
+        TripleBounce(barPortion[i],frame[i], i);
+        FastLED.show();
+        frame[i] += animateSpeed;
+        break;
+      case kWaveInt:
+        WaveInt(barPortion[i],frame[i],180, i);
+        FastLED.show();
+        frame[i] += animateSpeed;
+        break;
+      case kWave:
+        Wave(barPortion[i],frame[i],180, i);
+        FastLED.show();
+        frame[i] += animateSpeed;
+        break;
+      case kBlueSparkSlow:  //Blue spark (Slow)
+        Spark(barPortion[i],frame[i],255,188, i);   //Overloaded version of "Spark" with Hue value, 255 for fade is the slowest fade possible. 256 is on/off
+        delay(2);  //Slow things down a bit more for Slow Spark
+        FastLED.show();
+        frame[i] += animateSpeed;
+        break;
+      case kBlueSparkFast:  //Blue spark (fast)
+        Spark(barPortion[i],frame[i],246,188, i);  //Overloaded version of "Spark" with Hue value, 246 fade is faster which makes for a sharper dropoff
+        FastLED.show();
+        frame[i] += animateSpeed;
+        break;
+      case kWhiteSparkSlow:  //White spark (Slow)
+        Spark(barPortion[i],frame[i],255, i);  //"Spark" function without hue make a white spark, 255 for fade is the slowest fade possible.
+        delay(2);  //Slow things down a bit more for Slow Spark
+        FastLED.show();
+        frame[i] += animateSpeed;
+        break;
+      case kWhiteSparkFast:  //White spark (fast) "Spark" function without hue make a white spark, 246 fade is faster which makes for a sharper dropoff
+        Spark(barPortion[i],frame[i],245, i);
+        FastLED.show();
+        frame[i] += animateSpeed;
+        break;
+      case kRainbow:
+        RainbowSpark(barPortion[i],frame[i],240, i);  //240 for dropoff is a pretty sharp fade, good for this animation
+        FastLED.show();
+        frame[i] += animateSpeed;
+        break;
+      default:
+        cmdMessenger.sendCmd(kError, "wrong effect number");
+        restoreAfterEffect(i);
+      }
+
+    }
+  }
+
 }

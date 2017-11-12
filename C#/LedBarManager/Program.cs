@@ -41,10 +41,16 @@ namespace LedBarManager
             System.Threading.Thread.Sleep(1000);
             lb.AddPoint(1, 10);
 
-            /// Not really working now... 
-            /// Need to fix on Arduino side...
+            /// two effects at a time?
+            /// not a problem bro!
             System.Threading.Thread.Sleep(1000);
-            lb.ShowEffect(0, 3, 2000);
+            lb.ShowEffect(1, 2, 5000);
+            System.Threading.Thread.Sleep(1000);
+            lb.ShowEffect(0, 0, 5000);
+
+
+            System.Threading.Thread.Sleep(7000);
+
 
             /// This work as a reset.
             lb.StartProgressBar(10);
