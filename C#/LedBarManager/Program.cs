@@ -1,4 +1,6 @@
 ﻿/// Just an example...
+/// If you're curious you can open a serial monitor to take a look 
+/// at the communication with arduino.
 
 using System;
 
@@ -42,7 +44,8 @@ namespace LedBarManager
             System.Threading.Thread.Sleep(1000);
             lb.ShowEffect(0, 3, 2000);
 
-
+            /// This work as a reset.
+            lb.StartProgressBar(10);
 
 
         }
