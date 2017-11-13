@@ -42,7 +42,7 @@ namespace LedBarManager
             /// two effects at a time?
             /// not a problem bro!
             System.Threading.Thread.Sleep(1000);
-            lb.ShowEffect(2, 9, 10000);
+            lb.ShowEffect(2, 2, 10000);
             System.Threading.Thread.Sleep(1000);
             //lb.ShowEffect(0, 0, 5000);
 

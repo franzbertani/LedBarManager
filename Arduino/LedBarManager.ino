@@ -6,8 +6,9 @@
 #define LED_PIN     5
 #define COLOR_ORDER GRB
 #define CHIPSET     WS2812
-#define NUM_LEDS    30
-#define BAR_DISTANCE 0
+#define NUM_LEDS    60
+#define BAR_DISTANCE 5
+#define FRONT_DISTANCE 5
 #define MAX_INT_VALUE 65536
 #define BRIGHTNESS  200
 #define FRAMES_PER_SECOND 60
@@ -28,7 +29,7 @@ bool showingProgressBar; // to know if currently in game
 
 // -------------  L E D - E F F E C T S ----------------
 CRGB *barPortion[3];
-int effectLedsCount[3] = {(NUM_LEDS - BAR_DISTANCE)/2, (NUM_LEDS - BAR_DISTANCE)/2, NUM_LEDS};
+int effectLedsCount[3] = {(NUM_LEDS - BAR_DISTANCE - FRONT_DISTANCE)/2, (NUM_LEDS - BAR_DISTANCE - FRONT_DISTANCE)/2, NUM_LEDS};
 uint16_t frame[3] = {0, 0, 0};
 uint16_t animateSpeed = 100;
 uint8_t  animation[3];
@@ -178,7 +179,7 @@ void OnkSetPlayerColor()
 */
 void OnkLedNumberRequest()
 {
-  cmdMessenger.sendCmd(kLedNumberResponse, ((NUM_LEDS-BAR_DISTANCE)/2)-2);
+  cmdMessenger.sendCmd(kLedNumberResponse, ((NUM_LEDS-BAR_DISTANCE-FRONT_DISTANCE)/2)-2);
 
 }
 
@@ -514,15 +515,18 @@ void setup()
   FastLED.setBrightness( BRIGHTNESS );
   FastLED.clear();
   FastLED.show();
-  team1Front = leds;
-  team1Tail = leds + NUM_LEDS - 1;
-  team2Front = leds + ((NUM_LEDS-BAR_DISTANCE)/2)+BAR_DISTANCE;
-  team2Tail = leds + ((NUM_LEDS-BAR_DISTANCE)/2) - 1;
+  int teamLeds = (NUM_LEDS - BAR_DISTANCE - FRONT_DISTANCE) / 2;
+  team1Front = leds + FRONT_DISTANCE;
+  team1Tail = &leds[NUM_LEDS-1];
+  team2Tail = team1Front + teamLeds - 1;
+  team2Front = team2Tail + BAR_DISTANCE + 1;
+  
   barPortion[0] = team1Front;
   barPortion[1] = team2Front;
   barPortion[2] = leds;
   cmdMessenger.sendCmd(kAcknowledge,"Arduino has started!"); // send ready ack
-
+  
+  
 }
 
 // Loop function
