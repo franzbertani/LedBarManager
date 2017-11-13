@@ -6,8 +6,8 @@
 #define LED_PIN     5
 #define COLOR_ORDER GRB
 #define CHIPSET     WS2812
-#define NUM_LEDS    25
-#define BAR_DISTANCE 3
+#define NUM_LEDS    30
+#define BAR_DISTANCE 0
 #define MAX_INT_VALUE 65536
 #define BRIGHTNESS  200
 #define FRAMES_PER_SECOND 60

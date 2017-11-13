@@ -22,7 +22,7 @@ namespace LedBarManager
             /// Ready, set, go. 
             /// 10 is the total number of points to win the game.
             lb.StartProgressBar(10);
-
+            System.Threading.Thread.Sleep(2000);
             /// Add some points here and there.
             /// Not possible to overflow: if 10 is the maximum number of points
             /// each team can go up to 10.
@@ -31,12 +31,10 @@ namespace LedBarManager
             /// determined according to the percentage...
             lb.AddPoint(1, 4);
             lb.AddPoint(2, 3);
-            lb.AddPoint(1, 1);
 
             /// Just to let things go a little bit slower...
             System.Threading.Thread.Sleep(1000);
-            lb.AddPoint(1);
-            lb.AddPoint(2, 5);
+            lb.AddPoint(2, 1);
 
             System.Threading.Thread.Sleep(1000);
             lb.AddPoint(1, 10);
@@ -44,12 +42,12 @@ namespace LedBarManager
             /// two effects at a time?
             /// not a problem bro!
             System.Threading.Thread.Sleep(1000);
-            lb.ShowEffect(1, 2, 5000);
+            lb.ShowEffect(2, 9, 10000);
             System.Threading.Thread.Sleep(1000);
-            lb.ShowEffect(0, 0, 5000);
+            //lb.ShowEffect(0, 0, 5000);
 
 
-            System.Threading.Thread.Sleep(7000);
+            System.Threading.Thread.Sleep(10000);
 
 
             /// This work as a reset.
